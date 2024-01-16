@@ -1,0 +1,325 @@
+#!/bin/bash
+shopt -s extglob
+export LC_COLLATE=C
+db24_directory="mydb24"
+
+# Check if the directory exists
+if [ -d "$db24_directory" ]; then
+    echo "Directory $db24_directory already exists. Changing to $db24_directory."
+    cd "$db24_directory"
+else
+    # Create the directory
+    mkdir "$db24_directory"
+    
+    # Check if the directory creation was successful
+    if [ $? -eq 0 ]; then
+        echo "Directory $db24_directory created successfully. Changing to $db24_directory."
+        cd "$db24_directory"
+    else
+        echo "Error creating directory $db24_directory."
+    fi
+fi
+
+# Populate the databases array with existing directories
+databases=($(find . -mindepth 1 -type d -printf "%f\n"))
+echo "--------------------------WELCOM---------------------------"
+    echo "------------------------MAIN MENUE---------------------------"
+while true; do
+    echo "Select an option:"
+    echo "1. Create Database"
+    echo "2. List Databases"
+    echo "3. Drop Database"
+    echo "4. Connect to Database"
+    echo "5. Exit"
+
+    read -p "Enter the option number: " choice
+
+    case $choice in
+        1)
+            databases=($(find . -mindepth 1 -type d -printf "%f\n"))
+            while true; do
+            read -p "Enter the name of the new database (or type 0 to go back): " new_db
+	    new_db=$(echo "$new_db" | tr ' ' '_')
+            # Check if the database already exists
+            if [[ " ${databases[@]} " =~ " ${new_db} " ]]; then
+                echo "Error: Database '$new_db' already exists."
+            elif [[ $new_db =~ ^[0-9] ]]; then
+            if [[ $new_db = '0' ]]; then
+            break;
+            fi
+            echo "Error: Database name cannot start with a number."
+	    elif [ -z "$new_db" ]; then
+            echo "Error: Please enter a non-empty name for the database."
+            else
+                mkdir "$new_db"
+                databases+=("$new_db")
+                echo "Database '$new_db' created successfully."
+		break;
+            fi
+            done
+            ;;
+
+        2)
+
+
+	    databases=($(find . -mindepth 1 -type d -printf "%f\n"))
+            if [ ${#databases[@]} -eq 0 ]; then
+                echo "No databases found."
+            else
+                echo "List of Databases:"
+                for db in "${databases[@]}"; do
+                    echo "- $db"
+                done
+            fi
+            ;;
+
+        3)
+echo "Select the DB you want to drop."		
+select dir in $(ls); do
+
+                rm -r $dir
+echo "DB $dir deleted successfully"
+		break
+                done
+            ;;
+
+        4)
+echo "Select the DB you want to connect to"		
+select dir in $(ls); do
+
+                cd $dir
+echo "DB $dir connected successfully"
+		break
+                done
+echo "------------------------DB MENU---------------------------"
+             while true; do
+            echo "Database Options:"
+            echo "1. Create Table"
+            echo "2. Drop Table"
+            echo "3. List Tables"
+	    echo "4. Insert into Table"
+            echo "5. Select from Table"
+	    echo "6. Update Table"
+            echo "7. Delete From Table"
+	    echo "8. Truncate Table"
+            echo "9. Back to Main Menu"
+
+            read -p "Enter the option number: " db_option
+
+            case $db_option in
+                1)
+                    source ../../create_Table
+                    ;;
+                2)
+echo "Select a Table:"
+select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+
+ 
+rm "$file"
+			rm "$file.meta"
+echo "Table $file dropped successfully"
+		break
+                done
+                    ;;
+               
+
+
+
+
+3)
+ls *.meta 2>/dev/null | sed 's/\.meta$//'
+;;
+4)
+echo "Select a Table:"
+select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+    if [ -n "$file" ]; then
+        echo "You selected: $file"
+        # Extract words from the selected file
+        words=$(head -n 1 "$file.meta" | awk -F: '{for(i=1;i<=NF;i++) print $i}')
+	types=$(awk -F: 'NR==2 {for(i=1;i<=NF;i++) print $i}' "$file.meta")
+        #echo $words
+	#echo $types
+pk=$(head -n 1 "$file.meta" | awk -F: '{print $1}')
+
+
+        # Check if the primary key already exists in the file
+types_arr=()
+readarray -t types_arr <<< "$(echo "$types" | tr ' ' '\n')"
+ 	type="${types_arr[0]}"
+        while true; do
+	read -p "Enter value for $pk (Primary Key, $type): " pk_val
+        if grep -q "^$pk_val:" "$file"; then
+            echo "Primary key '$pk_val' already exists. Please choose a different primary key."
+            continue
+	elif [ "${types_arr[0]}" == "integer" ] && [[ ! "$pk_val" =~ ^[0-9]+$ ]]; then
+            echo "Error: $value is not a valid integer for $word."
+            continue
+        elif [ "${types_arr[0]}" == "string" ] && [[ "$pk_val" =~ ^[0-9]+$ ]]; then
+            echo "Error: $value is not a valid string for $word."
+            continue
+	else
+	line="$pk_val:"
+	break;
+        fi
+	done
+
+        
+        # Prompt the user for values for each word
+	types_counter=1
+        for word in $words; do
+	    if [ "$word" != "$pk" ]; then
+	    while true; do
+            read -p "Enter value for $word (${types_arr[$types_counter]}): " value
+        if [ "${types_arr[$types_counter]}" == "integer" ] && [[ ! "$value" =~ ^[0-9]+$ ]]; then
+            echo "Error: not a valid integer."
+            continue
+        elif [ "${types_arr[$types_counter]}" == "string" ] && [[ "$value" =~ ^[0-9]+$ ]]; then
+            echo "Error: not a valid string."
+            continue
+	else
+	line+="$value:"
+        types_counter=$(($types_counter + 1))
+        break
+        fi
+	    done
+	    fi
+        done
+        echo "${line}" >> "$file"
+        echo "Values inserted in $file"
+        break
+    else
+        echo "Invalid option. Please try again."
+    fi
+done
+;;
+5)
+source ../../select_from_table
+;;
+6)
+		echo "Select a Table:"
+select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+    if [ -n "$file" ]; then
+        echo "You selected: $file"
+        read -p "Enter the primary key for the row you want to update: " user_input
+
+        # Check if the row exists
+        if grep -q "^$user_input:" "$file"; then
+            old_line=$(grep "^$user_input:" "$file")
+
+            words=$(head -n 1 "$file.meta" | awk -F: '{for(i=1;i<=NF;i++) print $i}')
+            types=$(awk -F: 'NR==2 {for(i=1;i<=NF;i++) print $i}' "$file.meta")
+
+            pk=$(head -n 1 "$file.meta" | awk -F: '{print $1}')
+
+            # Check if the primary key already exists in the file
+            types_arr=()
+            readarray -t types_arr <<< "$(echo "$types" | tr ' ' '\n')"
+            type="${types_arr[0]}"
+            while true; do
+                read -p "Enter value for $pk (Primary Key, $type): " pk_val
+                if grep -q "^$pk_val:" "$file" && [ "$pk_val" != "$user_input" ]; then
+                    echo "Primary key '$pk_val' already exists. Please choose a different primary key."
+                    continue
+                elif [ "${types_arr[0]}" == "integer" ] && [[ ! "$pk_val" =~ ^[0-9]+$ ]]; then
+                    echo "Error: $pk_val is not a valid integer for $pk."
+                    continue
+                elif [ "${types_arr[0]}" == "string" ] && [[ "$pk_val" =~ ^[0-9]+$ ]]; then
+                    echo "Error: $pk_val is not a valid string for $pk."
+                    continue
+                else
+                    break
+                fi
+            done
+
+            # Prompt the user for values for each word
+            values=""
+            types_counter=1
+            for word in $words; do
+                if [ "$word" != "$pk" ]; then
+                    while true; do
+                        read -p "Enter value for $word (${types_arr[$types_counter]}): " value
+                        if [ "${types_arr[$types_counter]}" == "integer" ] && [[ ! "$value" =~ ^[0-9]+$ ]]; then
+                            echo "Error: not a valid integer."
+                            continue
+                        elif [ "${types_arr[$types_counter]}" == "string" ] && [[ "$value" =~ ^[0-9]+$ ]]; then
+                            echo "Error: not a valid string."
+                            continue
+                        else
+                            values+="$value:"
+                            types_counter=$(($types_counter + 1))
+                            break
+                        fi
+                    done
+                fi
+            done
+
+            # Replace the old line with the updated values
+            sed -i "s/$old_line/$pk_val:$values/" "$file"
+
+            echo "Row with primary key '$user_input' updated successfully."
+        else
+            echo "Row with primary key '$user_input' not found."
+        fi
+			break;
+		    fi
+                done
+;;
+
+7)
+
+
+echo "Select a Table:"
+select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+    if [ -n "$file" ]; then
+        echo "You selected: $file"
+        read -p "Enter the primary key for the row you want to delete: " user_input
+
+        # Check if the row exists
+        if grep -q "^$user_input:" "$file"; then
+            sed -i "/^$user_input:/d" "$file"
+            echo "Row deleted"
+        else
+            echo "Row not found"
+        fi
+    fi
+    break  # This line was added to exit the select loop after processing
+done
+
+ 
+;;
+
+8)
+source ../../truncate_table
+;;
+
+ 9)
+                    echo "Returning to the main menu."
+		    cd ../
+                    break
+                    ;;
+
+
+                *)
+                    echo "Invalid option. Please enter a valid option."
+                    ;;
+            esac
+
+            echo "--------------------------------------"
+        done
+
+    
+    ;;
+
+        5)
+            echo "Exiting the script."
+            exit 0
+            ;;
+
+        *)
+            echo "Invalid option. Please enter a valid option."
+            ;;
+    esac
+
+    echo "--------------------------------------"
+done
+

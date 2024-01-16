@@ -1,0 +1,126 @@
+#!/bin/bash
+echo "------------------------SELECT MENUE---------------------------"
+echo "1. Select All Columns of a Table"
+echo "2. Select Specific Column from a Table"
+echo "3. Select with Condition"
+
+
+read -p "Enter Choice: " ch
+
+  case $ch in
+	1)
+           echo "Select a Table:"
+	   select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+        	if [ -n "$file" ]; then
+		  words=$(head -n 1 "./$file.meta")
+
+		  echo "----------------RESULT------------------"
+		  echo $words
+		  echo "----------------------------------"
+		  cat ./$file
+		  break 
+		else
+		  echo "Invalid table. Try again."
+		fi
+           done
+           ;;
+
+	2)
+	  echo "Select a Table:"
+	  select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+	    if [ -n "$file" ]; then
+		echo "Select a column:"
+		words=$(head -n 1 "./$file.meta")
+		echo $words 
+
+		echo "----------------------------------"
+
+		field_count=$(awk -F':' 'NR==1 {print NF; exit}' "$file.meta")
+		max=$(($field_count - 1))
+		
+
+		echo -e "Enter column numbers (comma-separated and the numbers of columns must be from 1 to $max): "
+		read column_numbers
+
+		IFS=',' read -ra col_array <<< "$column_numbers"
+
+		invalid_column=false
+		for col in "${col_array[@]}"; do
+		    if [ "$col" -lt 1 ] || [ "$col" -ge "$field_count" ]; then
+		        invalid_column=true
+		        break  # Exit the loop if an invalid column is found
+		    fi
+		done
+
+		if [ "$invalid_column" == true ]; then
+		    echo "Invalid column number. Please enter valid column"
+		    break
+		fi
+
+		echo "----------------RESULT------------------"
+		
+		awk -v col_numbers="$column_numbers" 'BEGIN {OFS="\t"; FS=":"; split(col_numbers, col_array, /,/)} {
+		for (i in col_array) printf "%s%s", $col_array[i], (i < length(col_array)) ? OFS : ORS
+		    } 
+		    NR==1 { exit }  
+		' "$file.meta" 
+
+		echo "----------------------------------"
+
+		# Process each file and display selected columns
+		awk -v col_numbers="$column_numbers" 'BEGIN {OFS="\t"; FS=":"; split(col_numbers, col_array, /,/)} {
+		    for (i in col_array) printf "%s%s", $col_array[i], (i < length(col_array)) ? OFS : ORS
+		}' "$file"
+		break
+	    else
+		echo "Invalid table. Try again."
+	    fi
+	done
+	;;
+
+	3)
+	echo "Select a Table:"
+	select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+	    if [ -n "$file" ]; then
+		
+		echo "Select a column for the condition:"
+		words=$(head -n 1 "./$file.meta")
+		echo $words 
+
+		field_count=$(awk -F':' 'NR==1 {print NF; exit}' "$file.meta")
+		max=$(($field_count - 1))
+
+		echo "----------------------------------"
+		
+		echo -e "Enter only one column number (the numbers of columns must be from 1 to $max):"
+		read -p "Enter your choice: " col_choice
+
+		if [ "$col_choice" -lt 1 ] || [ "$col_choice" -gt "$max" ]; then
+		        echo "Invalid column number. Please enter valid column"
+		        break  
+		    fi
+
+		
+		echo -e "Enter condition based on the type of column (if it string enter string, number enter number)"
+		read -p "Enter your condition: " condition_choice
+		
+		echo "----------------RESULT------------------"
+		echo $words
+		echo "----------------------------------"
+		awk -F':' -v col="$col_choice" -v val="$condition_choice" '{
+			    if ($(col) == val) {
+				print $0
+			    }
+			}' "$file"
+		break
+	    else
+		echo "Invalid table. Try again."
+	    fi
+	done
+	;;
+
+	*)
+		echo " Wrong Choice "
+	  ;; 
+esac
+	  

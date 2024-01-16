@@ -1,0 +1,27 @@
+#!/bin/bash
+
+echo "Select a Table:"
+select file in $(ls *.meta 2>/dev/null | sed 's/\.meta$//'); do
+		
+		echo "This option will delete all data in this table, are you sure about this action: "
+		echo "1. yes"
+		echo "2. no"
+
+		read -p "Make your decision: " db_option
+
+			case $db_option in
+			  1)
+		                truncate -s 0 "$file"
+		                echo "Table '$file' truncated successfully."
+				break
+				;;
+			  2)
+				break
+				continue
+		                ;;
+			  *)
+				echo "Invalid option. Please enter a valid option."
+				;;
+			esac
+done                  
+

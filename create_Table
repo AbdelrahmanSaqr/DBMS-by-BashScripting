@@ -1,0 +1,104 @@
+#!/bin/bash
+shopt -s extglob
+export LC_COLLATE=C
+
+
+tables=($(find . -mindepth 1 -type f -printf "%f\n"))
+            while true; do
+            read -p "Enter the name of the new table (or type 0 to go back): " new_tb
+		if [[ ! "$new_tb" =~ ^[a-zA-Z0-9_]+$ ]]; then
+        	echo "Error: Table names can only contain letters, numbers, and underscores."
+       		continue
+    		fi
+	    new_tb=$(echo "$new_tb" | tr ' ' '_')
+            # Check if the database already exists
+            if [[ " ${tables[@]} " =~ " ${new_tb} " ]]; then
+                echo "Error: Table '$new_tb' already exists."
+            elif [[ $new_tb =~ ^[0-9] ]]; then
+            if [[ $new_tb -eq 0 ]]; then
+            break
+            fi
+            echo "Error: Table name cannot start with a number."
+	    elif [ -z "$new_tb" ]; then
+            echo "Error: Please enter a non-empty name for the Table."
+            else
+                touch "$new_tb"
+		m_new_table="${new_tb}.meta"
+		touch "$m_new_table" 
+                echo "Table '$new_tb' created successfully."
+		break
+            fi
+            done
+            
+
+echo "Enter your columns (note: the first column is the primary key)"
+i=1
+line1=""
+line2=""
+while true; do
+    read -p "Enter column $i name (or 0 if you're finished): " clmn_name
+    if [ -z "$clmn_name" ]; then
+    echo "Please enter a value"
+    continue
+    else 
+    clmn_name=$(echo $clmn_name | tr ' ' '_')
+    fi
+    # Check for special characters
+    if [[ ! "$clmn_name" =~ ^[a-zA-Z0-9_]+$ ]]; then
+        echo "Error: Column names can only contain letters, numbers, and underscores."
+        continue
+    fi
+
+    # Check if the value starts with a number
+    if [[ "$clmn_name" =~ ^[0-9] ]]; then
+	if [[ "$clmn_name" = 0 ]]; then
+	break;
+	fi
+        echo "Error: Column names cannot start with a number."
+        continue
+    fi
+
+    # Replace white spaces with underscores
+    clmn_name=$(echo $clmn_name | tr ' ' '_')
+
+    case $clmn_name in
+        0)
+            break;
+            ;;
+
+        *)
+	clmn_type=""
+
+	while true; do
+    echo "Choose data type:"
+    echo "1) Integer"
+    echo "2) String"
+
+    read -p "Enter your choice (1 or 2): " choice
+
+    if [ "$choice" == "1" ]; then
+        clmn_type="integer"
+        echo "You chose Integer."
+        break
+    elif [ "$choice" == "2" ]; then
+        clmn_type="string"
+        echo "You chose String."
+        break
+    else
+        echo "Please enter a valid option (1 or 2)."
+        continue
+    fi
+done
+
+            clmn_name+=":"
+	    clmn_type+=":"
+	    line1+=$clmn_name
+	    line2+=$clmn_type
+            ;;
+    esac
+
+    i=$((i+1))
+done
+	    echo "${line1}" >> "$m_new_table"
+	    echo "${line2}" >> "$m_new_table"
+
